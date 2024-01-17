@@ -9,7 +9,6 @@ function App() {
   const [message, setMessage] = useState('')
   const [room, setRoom] = useState('')
   const [messageHistory, setMessageHistory] = useState<string[]>([]);
-  const [apiResponse, setApiResponse] = useState('');
   const sendMessage = () => {
     socket.emit('send_message', { message, room,id })
   }
@@ -19,22 +18,7 @@ function App() {
       socket.emit('join_room', room)
     }
   }
-  const fetchData = async () => {
-    try {
-      // Sử dụng fetch để gọi API
-      const response = await fetch(`http://localhost:3000/api/v1/chat/room?id=${room}`);
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch data');
-      }
-
-      // Chuyển đổi response thành dữ liệu JSON
-      const data = await response.json();
-      setApiResponse(data.message);
-    } catch (error:any) {
-      console.error('Error:', error.message);
-    }
-  };
   useEffect(() => {
     // Sử dụng event 'receive_message_history' để nhận lịch sử tin nhắn khi tham gia vào phòng
     socket.on('receive_message_history', (data) => {
