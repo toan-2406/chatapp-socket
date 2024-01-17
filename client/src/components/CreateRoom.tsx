@@ -1,8 +1,9 @@
 import { useState } from 'react'
+import { useMutation, useQueryClient } from 'react-query'
 
 const CreateRoom = () => {
     const [room, setRoom] = useState('')
-    const createRoom = async () => {
+    const createRoomMutation = async (roomName: string) => {
         try {
             if(room.length === 0) {
                 return
@@ -13,7 +14,7 @@ const CreateRoom = () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    name: room
+                    name: roomName
                 }),
             });
             console.log(apiResponse)
@@ -21,14 +22,24 @@ const CreateRoom = () => {
             console.error('Error:', error.message);
             console.log('An error occurred while joining the room.');
         }
-    }
+      }
+      
+    const queryClient = useQueryClient();
+  
+  const mutation = useMutation(createRoomMutation, {
+    onSuccess: () => {
+      // Invalidate and refetch 
+      queryClient.invalidateQueries('rooms') 
+    },
+  });
+  
+  const handleCreate = (roomName:string) => {
+    mutation.mutate(roomName);
+  }
   return (
     <div>
         <h1>CreateRoom</h1>
-       <form onSubmit={(e)=>{
-        e.preventDefault()
-        createRoom()
-       }}>
+       <form onSubmit={() => handleCreate(room)}>
        <input type='text' placeholder='Enter room name' name='name' value={room} onChange={(v) => setRoom(v.target.value)}/> 
         <button >create</button>
        </form>

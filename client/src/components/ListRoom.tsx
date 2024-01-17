@@ -1,9 +1,8 @@
 // Import các dependencies
-import { useQuery } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { Room } from '../interfaces';
 
-// Khai báo hàm fetch data từ API
-const fetchData = async () => {
+const fetchRooms = async () => {
   const response = await fetch('http://localhost:5000/api/v1/chat/rooms');
   console.log(response)
   if (!response.ok) {
@@ -11,9 +10,8 @@ const fetchData = async () => {
   }
   return response.json();
 };
-
-const deleteRoom = async (id:string) => {
-  const response = await fetch(`http://localhost:5000/api/v1/chat/rooms/${id}`,{
+const deleteRoomMutation = async (roomId: string) => {
+  const response = await fetch(`http://localhost:5000/api/v1/chat/rooms/${roomId}`,{
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
@@ -24,14 +22,14 @@ const deleteRoom = async (id:string) => {
     throw new Error('Failed to fetch data');
   }
   return response.json();
-};
-const updateRoom = async (id:string, body:Room) => {
-  const response = await fetch(`http://localhost:5000/api/v1/chat/rooms/${id}`,{
+}
+const updateRoomMutation = async (updatedRoom: Room) => {
+  const response = await fetch(`http://localhost:5000/api/v1/chat/rooms/${updatedRoom.id}`,{
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(updatedRoom),
   });
   console.log(response)
   if (!response.ok) {
@@ -39,38 +37,39 @@ const updateRoom = async (id:string, body:Room) => {
   }
   return response.json();
 };
+
 // Component sử dụng React Query
-const ListRoomComponent: React.FC = () => {
-  // Sử dụng useQuery để gọi API
-  const { data, isLoading, isError } = useQuery(
-    ["listPeriod-in-salaryPeriod"],
-    {
-      queryFn: async () => {
-        const data =
-        fetchData()
-        return data;
-      },
-      retry: false,
-    });
+const ListRoomComponent: React.FC = ({}) => {
+  const { data: rooms } = useQuery('rooms', fetchRooms); 
+  const queryClient = useQueryClient();
 
-  if (isLoading) {
-    return <div>Loading...</div>;
+  const mutationDelete = useMutation(deleteRoomMutation, {
+    onSuccess: () => {
+      queryClient.invalidateQueries('rooms')
+    }  
+  });
+
+  const handleDelete = (roomId:string) => {
+    mutationDelete.mutate(roomId);
   }
+  const mutation = useMutation(updateRoomMutation, {
+    onSuccess: () => {
+      queryClient.invalidateQueries('rooms')
+    }
+  })
 
-  if (isError) {
-    return <div>Error fetching data</div>;
-  }
-
-  // Sử dụng dữ liệu từ API ở đây
+  const handleUpdate = (updatedRoom:Room) => {
+    mutation.mutate(updatedRoom);
+  };
   return (
     <div>
       <h1>List Room</h1>
       <ul>
-        {data.map((room:any) => (
-          <li key={room.id}>Room Name: <input placeholder={room.name} onBlur={(v) => updateRoom(room.id,{
-            id: room.id,
-            name: v.target.value
-          })}/> <button onClick={() => deleteRoom(room.id)}>Delete</button></li>
+        {rooms?.map((room:any) => (
+          <li key={room.id}>Room Name: <input defaultValue={room.name} onBlur={(v) => handleUpdate({
+            ...room,
+            name: v.target.value  
+          })}/> <button onClick={() => handleDelete(room.id)}>Delete</button></li>
         ))}
       </ul>
     </div>
